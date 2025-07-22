@@ -1,0 +1,15 @@
+[package]
+name = "poseidon2"
+version = "0.1.0"
+edition = "2021"
+repository = "https://github.com/ProjectZKM/poseidon2"
+keywords = ["poseidon2", "zkvm", "MIPS"]
+categories = ["cryptography"]
+
+[dependencies]
+cfg-if = "1.0.1"
+zkm-primitives = { git = "https://github.com/ProjectZKM/Ziren", branch = "poseidon2" }
+
+p3-koala-bear = { git = "https://github.com/ProjectZKM/Plonky3" }
+p3-field = { git = "https://github.com/ProjectZKM/Plonky3" }
+p3-symmetric = { git = "https://github.com/ProjectZKM/Plonky3" }
