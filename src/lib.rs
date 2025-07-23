@@ -10,63 +10,78 @@ cfg_if::cfg_if! {
 
 const WIDTH: usize = 16; // Number of field elements in the Poseidon2 state
 const RATE: usize = 8; // Number of field elements processed per round
-const DEFAULT_OUT_FIELD_LEN: usize = 8; // Number of field elements in the output
 const FIELD_SIZE: usize = 3; // Number of bytes can be safely converted to field element
 
-// Perform the Poseidon2 hash on the given input
-/// The default poseidon2 implementation uses a fixed output length of 32 bytes.
-pub fn poseidon2(input: &[u8]) -> [u8; 32] {
-    // The output length is fixed to 32 bytes
-    let result = poseidon2_impl(input, DEFAULT_OUT_FIELD_LEN * 4);
+const STACK_BUFFER_SIZE: usize = 192; // Size of the stack buffer for small inputs
 
-    result.try_into().unwrap()
-}
+#[inline(always)]
+fn poseidon2_core<const OUTPUT_SIZE: usize>(input: &[u8]) -> [u8; OUTPUT_SIZE] {
+    let mut state = [0u32; WIDTH];
+    let input_len = input.len();
+    let padded_len = (input_len + FIELD_SIZE) / FIELD_SIZE * FIELD_SIZE;
 
-pub fn poseidon2_128(input: &[u8]) -> [u8; 16] {
-    // The output length is fixed to 16 bytes
-    let result = poseidon2_impl(input, 16);
-
-    result.try_into().unwrap()
-}
-
-#[inline]
-pub fn poseidon2_impl(input: &[u8], out_byte_len: usize) -> Vec<u8> {
-    let field_input = padding(input);
-    let result = poseidon2_sponge(&field_input);
-
-    result[..out_byte_len].to_vec()
-}
-
-#[inline]
-fn padding(input: &[u8]) -> Vec<u32> {
-    let l = input.len();
-    let mut padded_input = input.to_vec();
-    let new_size = (l + FIELD_SIZE) / FIELD_SIZE * FIELD_SIZE;
-    padded_input.resize(new_size, 0);
-
-    // Pad the input to a multiple of 3 bytes
-    // Pad 1*01
-    if l % FIELD_SIZE == FIELD_SIZE - 1 {
-        padded_input[l] = 0b10000001;
+    if padded_len <= STACK_BUFFER_SIZE {
+        let mut padded_buf = [0u8; STACK_BUFFER_SIZE];
+        poseidon2_small_input(input, &mut padded_buf, &mut state);
     } else {
-        padded_input[l] = 1;
-        padded_input[new_size - 1] = 0b10000000;
+        poseidon2_large_input(input, &mut state);
     }
 
-    bytes_to_field_elements(&padded_input)
+    let mut result = [0u8; OUTPUT_SIZE];
+    unsafe {
+        std::ptr::copy_nonoverlapping(
+            state.as_ptr() as *const u8,
+            result.as_mut_ptr(),
+            OUTPUT_SIZE,
+        );
+    }
+    result
 }
 
-// each 3 bytes of input can be safely converted to a field element
-#[inline]
-fn bytes_to_field_elements(bytes: &[u8]) -> Vec<u32> {
-    bytes
-        .chunks(3)
-        .map(|chunk| {
-            let mut value = 0u32;
-            for (i, &byte) in chunk.iter().enumerate() {
-                value |= (byte as u32) << (i * 8);
-            }
-            value
-        })
-        .collect()
+#[inline(always)]
+pub fn poseidon2(input: &[u8]) -> [u8; 32] {
+    poseidon2_core::<32>(input)
 }
+
+#[inline(always)]
+pub fn poseidon2_128(input: &[u8]) -> [u8; 16] {
+    poseidon2_core::<16>(input)
+}
+
+#[inline(always)]
+fn poseidon2_small_input(input: &[u8], padded_buf: &mut [u8], state: &mut [u32; WIDTH]) {
+    let input_len = input.len();
+    let padded_len = (input_len + FIELD_SIZE) / FIELD_SIZE * FIELD_SIZE;
+
+    unsafe {
+        std::ptr::copy_nonoverlapping(input.as_ptr(), padded_buf.as_mut_ptr(), input_len);
+        std::ptr::write_bytes(padded_buf.as_mut_ptr().add(input_len), 0, padded_len - input_len);
+    }
+
+    apply_padding(padded_buf, input_len, padded_len);
+    poseidon2_sponge(&padded_buf[..padded_len], state);
+}
+
+#[inline]
+fn poseidon2_large_input(input: &[u8], state: &mut [u32; WIDTH]) {
+    let input_len = input.len();
+    let padded_len = (input_len + FIELD_SIZE) / FIELD_SIZE * FIELD_SIZE;
+
+    let mut padded_input = Vec::with_capacity(padded_len);
+    padded_input.extend_from_slice(input);
+    padded_input.resize(padded_len, 0);
+
+    apply_padding(&mut padded_input, input_len, padded_len);
+    poseidon2_sponge(&padded_input, state);
+}
+
+#[inline(always)]
+fn apply_padding(padded_input: &mut [u8], original_len: usize, padded_len: usize) {
+    let is_boundary = (original_len % FIELD_SIZE == FIELD_SIZE - 1) as u8;
+    padded_input[original_len] = 1 | (is_boundary << 7);
+
+    if is_boundary == 0 {
+        padded_input[padded_len - 1] = 0b10000000;
+    }
+}
+

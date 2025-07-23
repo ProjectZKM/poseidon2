@@ -1,4 +1,4 @@
-use crate::{RATE, WIDTH};
+use crate::{RATE, WIDTH, FIELD_SIZE};
 
 extern "C" {
     fn syscall_poseidon2_permute(w: *mut u32);
@@ -12,32 +12,45 @@ extern "C" {
 /// byte boundary.
 ///
 /// As this module is only active the with `target = zkvm`, this is always true.
-#[inline]
+#[inline(always)]
 fn permute(state: &mut [u32; 16]) {
     unsafe {
         syscall_poseidon2_permute(state.as_mut_ptr());
     }
 }
 
-#[inline]
-pub(crate) fn poseidon2_sponge(input: &[u32]) -> Vec<u8> {
-    let mut state = [0u32; WIDTH];
-    let mut chunks = input.chunks_exact(RATE);
+#[inline(always)]
+pub(crate) fn poseidon2_sponge(padded_input: &[u8], state: &mut [u32; WIDTH]) {
+    let chunk_count = padded_input.len() / FIELD_SIZE;
+    let mut i = 0;
 
-    for chunk in &mut chunks {
-        state[..RATE].clone_from_slice(chunk);
-        permute(&mut state);
+    while i + RATE <= chunk_count {
+        for j in 0..RATE {
+            let byte_offset = (i + j) * FIELD_SIZE;
+            state[j] = bytes_to_u32_fast(&padded_input[byte_offset..byte_offset + FIELD_SIZE]);
+        }
+        permute(state);
+
+        i += RATE;
     }
 
-    let remainder = chunks.remainder();
-    if !remainder.is_empty() {
-        state[..remainder.len()].clone_from_slice(remainder);
-        permute(&mut state);
-    }
+    if i < chunk_count {
+        let remaining = chunk_count - i;
 
-    state
-        .into_iter()
-        .map(|x| x.to_le_bytes())
-        .flatten()
-        .collect()
+        for j in 0..remaining {
+            let byte_offset = (i + j) * FIELD_SIZE;
+            state[j] = bytes_to_u32_fast(&padded_input[byte_offset..byte_offset + FIELD_SIZE]);
+        }
+        permute(state);
+    }
+}
+
+#[inline(always)]
+fn bytes_to_u32_fast(bytes: &[u8]) -> u32 {
+    match bytes.len() {
+        3 => (bytes[0] as u32) | ((bytes[1] as u32) << 8) | ((bytes[2] as u32) << 16),
+        2 => (bytes[0] as u32) | ((bytes[1] as u32) << 8),
+        1 => bytes[0] as u32,
+        _ => 0,
+    }
 }
