@@ -556,7 +556,7 @@ dependencies = [
 [[package]]
 name = "zkm-primitives"
 version = "1.1.1"
-source = "git+https://github.com/ProjectZKM/Ziren?branch=poseidon2#e33ca572e6b6e62c804c9208a61fe55f3fabae04"
+source = "git+https://github.com/ProjectZKM/Ziren?branch=poseidon2#20c8658aac71aa69b68fd96dbf7856123e7e4151"
 dependencies = [
  "bincode",
  "hex",
