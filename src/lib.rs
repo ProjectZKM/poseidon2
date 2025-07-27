@@ -55,7 +55,11 @@ fn poseidon2_small_input(input: &[u8], padded_buf: &mut [u8], state: &mut [u32; 
 
     unsafe {
         std::ptr::copy_nonoverlapping(input.as_ptr(), padded_buf.as_mut_ptr(), input_len);
-        std::ptr::write_bytes(padded_buf.as_mut_ptr().add(input_len), 0, padded_len - input_len);
+        std::ptr::write_bytes(
+            padded_buf.as_mut_ptr().add(input_len),
+            0,
+            padded_len - input_len,
+        );
     }
 
     apply_padding(padded_buf, input_len, padded_len);
@@ -84,4 +88,3 @@ fn apply_padding(padded_input: &mut [u8], original_len: usize, padded_len: usize
         padded_input[padded_len - 1] = 0b10000000;
     }
 }
-

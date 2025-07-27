@@ -25,7 +25,7 @@ pub(crate) fn poseidon2_sponge(padded_input: &[u8], input_state: &mut [u32; WIDT
         state[..remainder.len()].clone_from_slice(remainder);
         hasher.permute_mut(&mut state);
     }
-    
+
     for i in 0..WIDTH {
         input_state[i] = state[i].as_canonical_u32();
     }

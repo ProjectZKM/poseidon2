@@ -1,4 +1,4 @@
-use crate::{RATE, WIDTH, FIELD_SIZE};
+use crate::{FIELD_SIZE, RATE, WIDTH};
 
 extern "C" {
     fn syscall_poseidon2_permute(w: *mut u32);
