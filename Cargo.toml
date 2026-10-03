@@ -10,6 +10,6 @@ categories = ["cryptography"]
 cfg-if = "^1.0"
 zkm-primitives = { git = "https://github.com/ProjectZKM/Ziren" }
 
-p3-koala-bear = { git = "https://github.com/ProjectZKM/Plonky3" }
-p3-field = { git = "https://github.com/ProjectZKM/Plonky3" }
-p3-symmetric = { git = "https://github.com/ProjectZKM/Plonky3" }
+p3-koala-bear = { git = "https://github.com/ProjectZKM/Plonky3", rev = "4dd0d47a8176503fbaa7293c9f0e3b20004e16b2" }
+p3-field = { git = "https://github.com/ProjectZKM/Plonky3", rev = "4dd0d47a8176503fbaa7293c9f0e3b20004e16b2" }
+p3-symmetric = { git = "https://github.com/ProjectZKM/Plonky3", rev = "4dd0d47a8176503fbaa7293c9f0e3b20004e16b2" }

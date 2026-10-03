@@ -1,5 +1,5 @@
 use crate::{RATE, WIDTH};
-use p3_field::{FieldAlgebra, PrimeField32};
+use p3_field::{PrimeCharacteristicRing, PrimeField32};
 use p3_koala_bear::KoalaBear;
 use p3_symmetric::Permutation;
 use zkm_primitives::poseidon2_init;
@@ -9,9 +9,9 @@ pub(crate) fn poseidon2_sponge(padded_input: &[u8], input_state: &mut [u32; WIDT
     let input = bytes_to_field_elements(&padded_input);
     let input = input
         .iter()
-        .map(|&x| KoalaBear::from_canonical_u32(x))
+        .map(|&x| KoalaBear::from_u32(x))
         .collect::<Vec<_>>();
-    let mut state = input_state.map(KoalaBear::from_canonical_u32);
+    let mut state = input_state.map(KoalaBear::from_u32);
     let mut chunks = input.chunks_exact(RATE);
 
     let hasher = poseidon2_init();
