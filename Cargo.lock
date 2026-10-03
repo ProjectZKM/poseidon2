@@ -538,7 +538,7 @@ checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
 [[package]]
 name = "zkm-primitives"
 version = "2.0.0"
-source = "git+https://github.com/ProjectZKM/Ziren#10d23b1344e479a3be1afa8f76a7187e1075f36b"
+source = "git+https://github.com/ProjectZKM/Ziren#08e300fcb10f7e9ced87e041dc8b3f1e88a6c6d5"
 dependencies = [
  "bincode",
  "blake3",
